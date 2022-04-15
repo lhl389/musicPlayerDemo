@@ -78,6 +78,54 @@ const app = {
       path: "./music/IfYou-BIGBANG.mp3",
       img: "./img/IfYou-BIGBANG.jpg",
     },
+    {
+      name: "Last Dance",
+      singer: "BIGBANG",
+      path: "./music/LastDance-BIGBANG.mp3",
+      img: "./img/LastDance-BIGBANG.jpg",
+    },
+    {
+      name: "Lies",
+      singer: "BIGBANG",
+      path: "./music/Lies-BIGBANG.mp3",
+      img: "./img/Lies-BIGBANG.jpg",
+    },
+    {
+      name: "Loser",
+      singer: "BIGBANG",
+      path: "./music/Loser-BIGBANG.mp3",
+      img: "./img/Loser-BIGBANG.jpg",
+    },
+    {
+      name: "Still Life",
+      singer: "BIGBANG",
+      path: "./music/StillLife-BIGBANG.mp3",
+      img: "./img/StillLife-BIGBANG.jpg",
+    },
+    {
+      name: "ThatXx",
+      singer: "G-DRAGON",
+      path: "./music/ThatXx-GDRAGON.mp3",
+      img: "./img/ThatXx-GDRAGON.png",
+    },
+    {
+      name: "Untitled, 2014",
+      singer: "G-DRAGON",
+      path: "./music/Untitled2014-GDRAGON.mp3",
+      img: "./img/Untitled2014-GDRAGON.jpg",
+    },
+    {
+      name: "Who You",
+      singer: "G-DRAGON",
+      path: "./music/WhoYou-GDRAGON.mp3",
+      img: "./img/WhoYou-GDRAGON.jpg",
+    },
+    {
+      name: "Without You",
+      singer: "G-DRAGON FT. ROSÉ",
+      path: "./music/WithoutYou-GDRAGONFeatROSE.mp3",
+      img: "./img/WithoutYou-GDRAGONFeatROSE.png",
+    },
   ],
   setConfig: function (key, value) {
     this.config[key] = value;
@@ -124,8 +172,8 @@ const app = {
     document.onscroll = function () {
       const scrollTop = window.scrollY || document.documentElement.scrollTop;
       const newWidth = cdWidth - scrollTop;
-      cd.style.width = newWidth > 0 ? newWidth + "px" : 0;
-      cd.style.opacity = newWidth / cdWidth;
+      cd.style.width = newWidth > 50 ? newWidth + "px" : 50;
+      cd.style.opacity = newWidth > 50 ? newWidth : 50 / cdWidth;
     };
     // Play button onclick
     playButton.onclick = function () {
@@ -177,7 +225,7 @@ const app = {
         _this.prevSong();
       }
       audio.play();
-      _this.crollToActiveSong();
+      _this.scrollToActiveSong();
     };
     // Random song
     randomButton.onclick = function () {
