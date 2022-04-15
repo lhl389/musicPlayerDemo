@@ -1,5 +1,8 @@
 const $ = document.querySelector.bind(document);
 const $$ = document.querySelectorAll.bind(document);
+
+const PLAYER_STORAGE_KEY = "PLAYER_STORAGE_KEY";
+
 const player = $(".player__container");
 const heading = $("header h2");
 const cdThumb = $(".cd-thumb");
@@ -7,12 +10,19 @@ const audio = $("#audio");
 const cd = $(".cd");
 const progress = $("#progress");
 const playButton = $(".btn-toggle-play");
+const nextButton = $(".btn-next");
+const prevButton = $(".btn-prev");
+const randomButton = $(".btn-random");
+const repeatButton = $(".btn-repeat");
 
-const playlist = $(".playlist").innerHTML;
+const playlist = $(".playlist");
 
 const app = {
   currentIndex: 0,
   isPlaying: false,
+  isRandom: false,
+  isRepeat: false,
+  config: JSON.parse(localStorage.getItem(PLAYER_STORAGE_KEY)) || {},
   songs: [
     {
       name: "Bang Bang Bang",
@@ -69,10 +79,14 @@ const app = {
       img: "./img/IfYou-BIGBANG.jpg",
     },
   ],
+  setConfig: function (key, value) {
+    this.config[key] = value;
+    localStorage.setItem(PLAYER_STORAGE_KEY, JSON.stringify(this.config));
+  },
   render: function () {
-    const htmls = this.songs.map((song) => {
+    const htmls = this.songs.map((song, index) => {
       return `
-            <div class="song">
+            <div class="song" data-index="${index}">
                 <div
                   class="thumb"
                   style="background-image: url('${song.img}')"
@@ -87,7 +101,8 @@ const app = {
             </div>
             `;
     });
-    $(".playlist").innerHTML = htmls.join("");
+
+    playlist.innerHTML = htmls.join("");
   },
   defineProperties: function () {
     Object.defineProperty(this, "currentSong", {
@@ -99,6 +114,12 @@ const app = {
   handleEvents: function () {
     const _this = this;
     const cdWidth = cd.offsetWidth;
+    // CD rotating
+    const cdThumbAnimate = cdThumb.animate([{ transform: "rotate(360deg)" }], {
+      duration: 10000,
+      iterations: Infinity,
+    });
+    cdThumbAnimate.pause();
     // CD Interface
     document.onscroll = function () {
       const scrollTop = window.scrollY || document.documentElement.scrollTop;
@@ -115,31 +136,139 @@ const app = {
       }
     };
     audio.onplay = function () {
-        _this.isPlaying = true;
-        player.classList.add("playing");
-    }
+      _this.isPlaying = true;
+      player.classList.add("playing");
+      cdThumbAnimate.play();
+    };
     audio.onpause = function () {
-        _this.isPlaying = false;
-        player.classList.remove("playing");
-    }
+      _this.isPlaying = false;
+      player.classList.remove("playing");
+      cdThumbAnimate.pause();
+    };
+    // Progress bar
     audio.ontimeupdate = function () {
-        if(audio.duration){
-            const progressPercent = Math.floor(audio.currentTime / audio.duration * 100);
-            progress.value = progressPercent;
+      if (audio.duration) {
+        const progressPercent = Math.floor(
+          (audio.currentTime / audio.duration) * 100
+        );
+        progress.value = progressPercent;
+      }
+    };
+    // Seeking song
+    progress.onchange = function (e) {
+      const seekTime = (e.target.value / 100) * audio.duration;
+      audio.currentTime = seekTime;
+    };
+    // Next song
+    nextButton.onclick = function () {
+      if (_this.isRandom) {
+        _this.randomSong();
+      } else {
+        _this.nextSong();
+      }
+      audio.play();
+      _this.scrollToActiveSong();
+    };
+    // Prev song
+    prevButton.onclick = function () {
+      if (_this.isRandom) {
+        _this.randomSong();
+      } else {
+        _this.prevSong();
+      }
+      audio.play();
+      _this.crollToActiveSong();
+    };
+    // Random song
+    randomButton.onclick = function () {
+      _this.isRandom = !_this.isRandom;
+      _this.setConfig("isRandom", _this.isRandom);
+      randomButton.classList.toggle("btn-active", _this.isRandom);
+    };
+    // Song ending
+    audio.onended = function () {
+      if (_this.isRepeat) {
+        audio.play();
+      } else {
+        nextButton.click();
+      }
+    };
+    // Song repeating
+    repeatButton.onclick = function (e) {
+      _this.isRepeat = !_this.isRepeat;
+      _this.setConfig("isRepeat", _this.isRepeat);
+      repeatButton.classList.toggle("btn-active", _this.isRepeat);
+    };
+    playlist.onclick = function (e) {
+      const songNode = e.target.closest(".song:not(.active)");
+      const optionNode = e.target.closest(".option");
+      if (songNode || optionNode) {
+        if (songNode) {
+          _this.currentIndex = songNode.dataset.index;
+          _this.loadCurrentSong();
+          audio.play();
         }
-    }
+        if (optionNode) {
+        }
+      }
+    };
+  },
+  scrollToActiveSong: function () {
+    setTimeout(() => {
+      $(".song.active").scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    }, 300);
   },
   loadCurrentSong: function () {
     heading.textContent = this.currentSong.name;
     cdThumb.style.backgroundImage = `url('${this.currentSong.img}')`;
     audio.src = this.currentSong.path;
+    const querySong = $$(".song");
+    for (let i = 0; i < querySong.length; i++) {
+      if (i == this.currentIndex) {
+        querySong[i].classList.add("active");
+      } else {
+        querySong[i].classList.remove("active");
+      }
+    }
+  },
+  loadConfig: function () {
+    this.isRandom = this.config.isRandom;
+    this.isRepeat = this.config.isRepeat;
+  },
+  nextSong: function () {
+    this.currentIndex++;
+    if (this.currentIndex >= this.songs.length) {
+      this.currentIndex = 0;
+    }
+    this.loadCurrentSong();
+  },
+  prevSong: function () {
+    this.currentIndex--;
+    if (this.currentIndex < 0) {
+      this.currentIndex = this.songs.length - 1;
+    }
+    this.loadCurrentSong();
+  },
+  randomSong: function () {
+    let newIndex;
+    do {
+      newIndex = Math.floor(Math.random() * this.songs.length);
+    } while (newIndex === this.currentIndex);
+    this.currentIndex = newIndex;
+    this.loadCurrentSong();
   },
   start: function () {
-    // Define Object Properties
+    // Assign config to current
+    this.loadConfig();
     this.defineProperties();
     this.handleEvents();
-    this.loadCurrentSong();
     this.render();
+    this.loadCurrentSong();
+    randomButton.classList.toggle("btn-active", this.isRandom);
+    repeatButton.classList.toggle("btn-active", this.isRepeat);
   },
 };
 app.start();
